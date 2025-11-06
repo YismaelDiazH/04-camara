@@ -1,4 +1,4 @@
-const CACHE_NAME = 'camara-pwa-v1';
+const CACHE_NAME = 'camara-pwa-v2';
 const DYNAMIC_CACHE_NAME = 'camara-dynamic-v1'; // Para nuestras fotos
 
 const urlsToCache = [
