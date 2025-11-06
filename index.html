@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PWA Cámara</title>
+    
+    <link rel="manifest" href="./manifest.json">
+    <meta name="theme-color" content="#333333">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="./images/icons/icon-192.png">
+
+    <link rel="stylesheet" href="./estilos.css">
+</head>
+<body>
+
+    <main class="container">
+        <h1>PWA Cámara</h1>
+        
+        <button id="openCameraBtn" class="button-primary">Abrir Cámara</button>
+
+        <div id="cameraContainer" class="camera-container">
+            <video id="video" autoplay playsinline></video>
+            
+            <img id="photoDisplay" alt="Foto capturada">
+
+            <button id="takePhotoBtn" class="button-capture">
+                <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="white">
+                    <circle cx="12" cy="12" r="10" stroke="black" stroke-width="2" />
+                </svg>
+            </button>
+        </div>
+
+        <button id="retakePhotoBtn" class="button-secondary">Tomar Otra Foto</button>
+
+        <canvas id="canvas" width="320" height="240"></canvas>
+
+        <div id="photoGalleryContainer">
+            <h2>Mis Fotos</h2>
+            <div id="photoGallery">
+                </div>
+        </div>
+    </main>
+    
+    <script src="./app.js"></script>
+    
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registrado con éxito:', registration);
+                    })
+                    .catch(error => {
+                        console.log('Fallo en el registro del Service Worker:', error);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
