@@ -13,7 +13,7 @@ const flipCameraBtn = document.getElementById('flipCameraBtn'); // Nuevo botón
 
 let stream = null;
 let currentFacingMode = 'environment'; // 'environment' (trasera), 'user' (frontal)
-const DYNAMIC_CACHE_NAME = 'camara-dynamic-v1';
+const DYNAMIC_CACHE_NAME = 'camara-dynamic-v2';
 
 // --- Funciones Principales ---
 
