@@ -1,5 +1,5 @@
-const CACHE_NAME = 'camara-pwa-v4';
-const DYNAMIC_CACHE_NAME = 'camara-dynamic-v2'; // Para nuestras fotos
+const CACHE_NAME = 'camara-pwa-v5';
+const DYNAMIC_CACHE_NAME = 'camara-dynamic-v1'; // Para nuestras fotos
 
 const urlsToCache = [
     './',
@@ -7,8 +7,8 @@ const urlsToCache = [
     './app.js',
     './estilos.css',
     './manifest.json',
-    './images/icons/icon-192.svg',
-    './images/icons/icon-512.svg'
+    //'./images/icons/icon-192.svg',
+    //'./images/icons/icon-512.svg'
 ];
 
 // --- Evento install: Almacenamiento del App Shell ---
