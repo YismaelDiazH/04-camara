@@ -1,3 +1,4 @@
+
 const openCameraBtn = document.getElementById('openCameraBtn');
 const cameraContainer = document.getElementById('cameraContainer');
 const video = document.getElementById('video');
@@ -8,8 +9,10 @@ const photoDisplay = document.getElementById('photoDisplay');
 const retakePhotoBtn = document.getElementById('retakePhotoBtn');
 const photoGalleryContainer = document.getElementById('photoGalleryContainer');
 const photoGallery = document.getElementById('photoGallery');
+const flipCameraBtn = document.getElementById('flipCameraBtn'); // Nuevo botón
 
 let stream = null;
+let currentFacingMode = 'environment'; // 'environment' (trasera), 'user' (frontal)
 const DYNAMIC_CACHE_NAME = 'camara-dynamic-v1';
 
 // --- Funciones Principales ---
@@ -26,7 +29,6 @@ async function loadPhotosFromCache() {
             photoGalleryContainer.style.display = 'block';
         }
 
-        // Cargar todas las fotos en paralelo
         const photoPromises = requests.map(async (request) => {
             if (request.url.includes('photo-')) {
                 const response = await cache.match(request);
@@ -53,7 +55,7 @@ function addPhotoToGallery(imageURL) {
     img.src = imageURL;
     img.alt = "Foto de la galería";
     photoGallery.appendChild(img);
-    photoGalleryContainer.style.display = 'block'; // Asegurarse de que sea visible
+    photoGalleryContainer.style.display = 'block';
 }
 
 /**
@@ -61,16 +63,11 @@ function addPhotoToGallery(imageURL) {
  * @param {string} imageDataURL - La imagen en formato Data URL (Base64).
  */
 async function savePhotoToCache(imageDataURL) {
-    if (!('caches' in window)) {
-        console.log('El navegador no soporta Caché API.');
-        return;
-    }
+    if (!('caches' in window)) return;
     
-    // Usamos un timestamp como clave única
     const key = `photo-${Date.now()}.png`;
     
     try {
-        // La API de Fetch puede "consumir" un Data URL
         const response = await fetch(imageDataURL); 
         const cache = await caches.open(DYNAMIC_CACHE_NAME);
         await cache.put(key, response);
@@ -95,34 +92,50 @@ function closeCameraStream() {
  * Prepara la UI y solicita el stream de la cámara.
  */
 async function openCamera() {
-    // 1. Reiniciar UI al estado "cámara activa"
+    // 1. Detener cualquier stream anterior (clave para rotar la cámara)
+    closeCameraStream();
+
+    // 2. Reiniciar UI al estado "cámara activa"
     cameraContainer.style.display = 'block';
     openCameraBtn.style.display = 'none';
     retakePhotoBtn.style.display = 'none';
     photoDisplay.style.display = 'none';
     video.style.display = 'block';
     takePhotoBtn.style.display = 'flex';
+    flipCameraBtn.style.display = 'flex'; // Mostrar botón de rotar
 
     try {
-        // 2. Definición de Restricciones
+        // 3. Definición de Restricciones (usando la variable global)
         const constraints = {
             video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 320 },
-                height: { ideal: 240 }
+                facingMode: { ideal: currentFacingMode },
+                // Eliminamos width/height fijos para obtener la mejor resolución
             }
         };
 
-        // 3. Obtener y asignar el Stream
+        // 4. Obtener y asignar el Stream
         stream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = stream;
+        
+        // 5. SOLUCIÓN A LA DISTORSIÓN:
+        // Esperar a que el video tenga metadatos para leer su tamaño real
+        video.onloadedmetadata = () => {
+            // Obtener el tamaño real del video
+            const track = stream.getVideoTracks()[0];
+            const settings = track.getSettings();
+
+            console.log(`Dimensiones reales del stream: ${settings.width}x${settings.height}`);
+
+            // Asignar el tamaño real al canvas (esto evita la distorsión)
+            canvas.width = settings.width;
+            canvas.height = settings.height;
+        };
         
         console.log('Cámara abierta exitosamente');
 
     } catch (error) {
         console.error('Error al acceder a la cámara:', error);
         alert('No se pudo acceder a la cámara. Asegúrate de dar permisos.');
-        // Revertir UI si falla
         cameraContainer.style.display = 'none';
         openCameraBtn.style.display = 'block';
     }
@@ -137,10 +150,11 @@ async function takePhoto() {
         return;
     }
 
-    // 1. Dibujar el Frame en el Canvas
+    // 1. Dibujar el Frame en el Canvas (usando el tamaño dinámico)
+    console.log(`Dibujando en canvas de ${canvas.width}x${canvas.height}`);
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
     
-    // 2. Conversión a Data URL (formato Png)
+    // 2. Conversión a Data URL
     const imageDataURL = canvas.toDataURL('image/png');
     
     // 3. Detener el stream de la cámara
@@ -149,12 +163,12 @@ async function takePhoto() {
     // 4. Actualizar la UI al estado "foto tomada"
     video.style.display = 'none';
     takePhotoBtn.style.display = 'none';
+    flipCameraBtn.style.display = 'none'; // Ocultar botón de rotar
     photoDisplay.src = imageDataURL;
     photoDisplay.style.display = 'block';
     retakePhotoBtn.style.display = 'block';
     
     // 5. Guardar en caché y agregar a la galería
-    // Hacemos esto de forma asíncrona (no bloqueamos la UI)
     try {
         await savePhotoToCache(imageDataURL);
         addPhotoToGallery(imageDataURL);
@@ -163,23 +177,27 @@ async function takePhoto() {
     }
 }
 
+/**
+ * Rota la cámara (frontal/trasera) y reinicia el stream.
+ */
+function flipCamera() {
+    currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+    console.log(`Cambiando a cámara: ${currentFacingMode}`);
+    openCamera(); // Volver a abrir la cámara con la nueva configuración
+}
+
+
 // --- Event Listeners ---
 
-// Iniciar la cámara
 openCameraBtn.addEventListener('click', openCamera);
-
-// Tomar la foto
 takePhotoBtn.addEventListener('click', takePhoto);
-
-// Reiniciar para tomar otra foto
 retakePhotoBtn.addEventListener('click', openCamera);
+flipCameraBtn.addEventListener('click', flipCamera); // Nuevo listener
 
-// Cargar fotos guardadas al iniciar la app
 window.addEventListener('load', () => {
     loadPhotosFromCache();
 });
 
-// Limpiar stream si el usuario cierra la página
 window.addEventListener('beforeunload', () => {
     closeCameraStream();
 });
